@@ -30,13 +30,14 @@ app.get("/", (req, res) => {
 // app.enable('etag')
 
 app.get('/t', async function(req, res) {
-  const repoUrl = req.query.repo //"https://github.com/edgexfoundry/edgex-global-pipelines.git"
-  const namedTag = req.query.tag // stable
+  const repoUrl = req.query.repo // "https://github.com/edgexfoundry/edgex-global-pipelines.git"
+  const namedTag = req.query.tag // "stable"
+  const colorRequest = req.query.color || 'success'
 
   const versionInfo = await getNamedTagVersion(repoUrl, namedTag)
   if(versionInfo) {
     const { version } = versionInfo
-    redirectVersionShield(version, namedTag, res)
+    redirectVersionShield(res, { color: colorRequest, version: version, label: namedTag})
   }
   else {
     pixel(res)
@@ -44,12 +45,14 @@ app.get('/t', async function(req, res) {
 })
 
 app.get('/r', async function(req, res) {
-  const repoUrl = req.query.repo //"https://github.com/edgexfoundry/edgex-global-pipelines.git"
+  const repoUrl = req.query.repo // "https://github.com/edgexfoundry/edgex-global-pipelines.git"
+  const colorRequest = req.query.color || 'success'
+
   if(repoUrl) {
     const semver = await getSemverVersion(repoUrl)
     const {version} = semver
 
-    redirectVersionShield(version, 'version', res)
+    redirectVersionShield(res, { color: colorRequest, version: version, label: 'version'})
 
     // Download in memeory and send pixel buffer...not working yet
     /*const shield = downloadShield(version)
@@ -74,8 +77,12 @@ app.get('/r', async function(req, res) {
   }
 })
 
-function redirectVersionShield(version, label = 'version', res) {
-  const shieldUrl = `https://img.shields.io/static/v1?label=${label}&message=v${version}&color=success&cacheSeconds=60`
+function redirectVersionShield(res, options) {
+  // deconstruction opportunity
+  const params = { label: options.label, message: `v${options.version}`, color: options.color, cacheSeconds: 60 }
+  const paramsStr = Object.entries(params).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join('&')
+
+  const shieldUrl = `https://img.shields.io/static/v1?${paramsStr}`
   res.setHeader('Cache-Control', 'no-cache')
   res.redirect(301, shieldUrl)
 }
