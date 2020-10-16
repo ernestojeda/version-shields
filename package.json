@@ -2,7 +2,7 @@
   "//1": "describes your app and its dependencies",
   "//2": "https://docs.npmjs.com/files/package.json",
   "//3": "updating this file will download and update your packages",
-  "name": "hello-express",
+  "name": "version-shields",
   "version": "0.0.1",
   "description": "A simple Node app built on Express, instantly up and running.",
   "main": "server.js",
@@ -10,16 +10,17 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@octokit/rest": "^18.0.6",
     "express": "^4.17.1",
+    "file-type": "^15.0.1",
     "node-fetch": "^2.6.1",
-    "semver": "^7.3.2",
-    "file-type": "^15.0.1"
+    "semver": "^7.3.2"
   },
   "engines": {
     "node": "12.x"
   },
   "repository": {
-    "url": "https://glitch.com/edit/#!/hello-express"
+    "url": "https://github.com/ernestojeda/version-shields"
   },
   "license": "MIT",
   "keywords": [
