@@ -10,7 +10,7 @@ const SemVer = require('semver/classes/semver')
 const { Octokit } = require("@octokit/rest")
 
 const octokit = new Octokit({
-  auth: "8b2545b142342c1058027251455e7e5a41d92348",
+  auth: process.env.GITHUB_TOKEN,
   userAgent: 'edgexfoundry/version-shield v1.0.0'
 })
 
@@ -33,10 +33,12 @@ app.get('/t', async function(req, res) {
   const repoUrl = req.query.repo //"https://github.com/edgexfoundry/edgex-global-pipelines.git"
   const namedTag = req.query.tag // stable
 
-  if(repoUrl && (namedTag && namedTag !== '')) {
-    const {version} = await getNamedTagVersion(repoUrl, namedTag)
-    redirectVersionShield(version, res)
-  } else {
+  const versionInfo = await getNamedTagVersion(repoUrl, namedTag)
+  if(versionInfo) {
+    const { version } = versionInfo
+    redirectVersionShield(version, namedTag, res)
+  }
+  else {
     pixel(res)
   }
 })
@@ -47,7 +49,7 @@ app.get('/r', async function(req, res) {
     const semver = await getSemverVersion(repoUrl)
     const {version} = semver
 
-    redirectVersionShield(version, res)
+    redirectVersionShield(version, 'version', res)
 
     // Download in memeory and send pixel buffer...not working yet
     /*const shield = downloadShield(version)
@@ -72,8 +74,8 @@ app.get('/r', async function(req, res) {
   }
 })
 
-function redirectVersionShield(version, res) {
-  const shieldUrl = `https://img.shields.io/static/v1?label=version&message=v${version}&color=success&cacheSeconds=60`
+function redirectVersionShield(version, label = 'version', res) {
+  const shieldUrl = `https://img.shields.io/static/v1?label=${label}&message=v${version}&color=success&cacheSeconds=60`
   res.setHeader('Cache-Control', 'no-cache')
   res.redirect(301, shieldUrl)
 }
@@ -138,6 +140,10 @@ async function getSemverVersion(repoUrl) {
 }
 
 async function getNamedTagVersion(repoUrl, namedTag) {
+  if(!repoUrl && (!namedTag && namedTag === '')) {
+    return
+  }
+
   const repo = new URL(repoUrl)
   const cleanPath = repo.pathname.replace('.git', '')
   const pathSplit = cleanPath.split('/').filter(el => el.length > 0)
@@ -156,9 +162,10 @@ async function getNamedTagVersion(repoUrl, namedTag) {
 
       if(status == 200 && tags) {
         const namedTagRef = tags.find(tag => tag.name === namedTag)
-        console.log(`Found named tag info for [${namedTag}] sha [${namedTagRef.commit.sha}]`)
-        
+
         if(namedTagRef) {
+          console.log(`Found named tag info for [${namedTag}] sha [${namedTagRef.commit.sha}]`)
+
           // We should have a version tag with the same commit as the namedTag
           const versionTag = tags.find(tag => tag.commit.sha === namedTagRef.commit.sha)
           if(versionTag) {
